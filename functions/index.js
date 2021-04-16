@@ -1,5 +1,5 @@
 const functions = require("firebase-functions");
-const {CloudTasksClient} = require("@google-cloud/tasks");
+// const {CloudTasksClient} = require("@google-cloud/tasks");
 const admin = require("firebase-admin");
 
 admin.initializeApp(functions.config().firebase);
@@ -12,7 +12,7 @@ admin.initializeApp(functions.config().firebase);
 //   response.send("Hello from Firebase!");
 // });
 
-exports.auctionSetStatus = functions.pubsub.schedule("* * * * *")
+exports.auctionSetStatus = functions.region("asia-northeast1").pubsub.schedule("* * * * *")
     .onRun((context)=>{
       admin.database().ref("auction_informations").once("value", (snapshot) => {
         const auctionInformations = snapshot.val();
@@ -105,7 +105,29 @@ exports.auctionSetStatus = functions.pubsub.schedule("* * * * *")
       });
       return "";
     });
+exports.removeAuthUserTest = functions.region("asia-northeast1").https.onCall((data, context) => {
+  admin
+      .auth()
+      .listUsers(1000)
+      .then((listUsersResult) => {
+        const listUid = [];
+        listUsersResult.users.forEach((userRecord) => {
+          const uid = userRecord.toJSON().uid;
+          listUid.push(uid);
+        });
 
+        admin.auth().deleteUsers(listUid)
+            .then(function() {
+              console.log("Successfully deleted user");
+            })
+            .catch(function(error) {
+              console.log("Error deleting user:", error);
+            });
+      })
+      .catch((error) => {
+        console.log("Error listing users:", error);
+      });
+});
 // exports.simpleDbFunction = functions.database.ref("/auction_informations/{auctionId}")
 //     .onWrite((change, context) => {
 //       // Only edit data when it is first created.
@@ -169,9 +191,4 @@ exports.auctionSetStatus = functions.pubsub.schedule("* * * * *")
 //       });
 //     });
 
-exports.receivedData = functions.https.onRequest((request, response) => {
-  const payload = request.body;
-  functions.logger.info("Hello logs!", {structuredData: true});
-  console.log("Received: ", payload);
-  response.send("Hello from Firebase!");
-});
+
