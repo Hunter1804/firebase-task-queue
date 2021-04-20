@@ -84,6 +84,8 @@ exports.auctionSetStatus = functions.region("asia-northeast1").pubsub.schedule("
                         admin.database().ref("users").child(userId).child("list_bidding_auctions").child(auctionId).child(fishId).child(userId).remove();
                       }
                     }
+                    // update fish is finished auction
+                    admin.database().ref("fishes").child(fishId).child("is_auction_finished").set(false);
                   }
                 }
               });
