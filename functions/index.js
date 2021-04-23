@@ -12,7 +12,7 @@ admin.initializeApp(functions.config().firebase);
 //   response.send("Hello from Firebase!");
 // });
 
-exports.auctionSetStatus = functions.region("asia-northeast1").pubsub.schedule("* * * * *")
+exports.auctionSetStatusInfo = functions.region("asia-northeast1").pubsub.schedule("* * * * *")
     .onRun((context)=>{
       admin.database().ref("auction_informations").once("value", (snapshot) => {
         const auctionInformations = snapshot.val();
@@ -84,11 +84,16 @@ exports.auctionSetStatus = functions.region("asia-northeast1").pubsub.schedule("
                         admin.database().ref("users").child(userId).child("list_bidding_auctions").child(auctionId).child(fishId).child(userId).remove();
                       }
                     }
-                    // update fish is finished auction
-                    admin.database().ref("fishes").child(fishId).child("is_auction_finished").set(false);
                   }
                 }
               });
+              // update fish is finished auction
+              const listFish = auctionInformations[auctionId].list_fishes;
+              for (const fishId in listFish) {
+                if (Object.prototype.hasOwnProperty.call(listFish, fishId)) {
+                  admin.database().ref("fishes").child(fishId).child("is_auction_finished").set(true);
+                }
+              }
             } else if (currentTime < auctionInformations[auctionId].start_time) auctionOpen[auctionId] = auctionInformations[auctionId];
             else if (currentTime >= auctionInformations[auctionId].start_time && currentTime <= auctionInformations[auctionId].finish_time) {
               auctionInprogess[auctionId] = auctionInformations[auctionId];
