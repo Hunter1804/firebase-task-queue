@@ -135,6 +135,67 @@ exports.removeAuthUserTest = functions.region("asia-northeast1").https.onCall((d
         console.log("Error listing users:", error);
       });
 });
+
+exports.auctionRemoveMediaStorage = functions.region("asia-northeast1").pubsub.schedule("* * * * *")
+    .onRun((context)=>{
+      const bucket = admin.storage().bucket("absolute-dev01.appspot.com");
+
+      admin.database().ref("auctions").child("finish_auctions").once("value", (snapshot) => {
+        const auctionInformations = snapshot.val();
+        // functions.logger.log("Successfully auctionInformations:", auctionInformations);
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (auctionInformations) {
+          for (const auctionId in auctionInformations) {
+            if (Object.prototype.hasOwnProperty.call(auctionInformations, auctionId)) {
+              // functions.logger.log("Successfully auctionInformations finish_time:", auctionInformations[auctionId].finish_time);
+              const auctionFinishTime = auctionInformations[auctionId].finish_time;
+              const diffTime = Math.abs(currentTime - auctionFinishTime);
+              const diffDays = Math.ceil(diffTime / ( 60 * 60 * 24));
+              if (diffDays >= 90) {
+                // functions.logger.log("Successfully auctionInformations diffDays:", diffDays);
+                const listFish = auctionInformations[auctionId].list_fishes;
+                for (const fishId in listFish) {
+                  if (Object.prototype.hasOwnProperty.call(listFish, fishId)) {
+                    admin.database().ref("media").child(fishId).once("value", (data) => {
+                      const media = data.val();
+                      if (media) {
+                        const lsitImages = media._fileNames;
+                        // functions.logger.log("Successfully deleted lsitImages:", lsitImages);
+                        if (lsitImages) {
+                          lsitImages.forEach( (fileName) => {
+                            const filePath = `images/${fileName}`;
+                            const file = bucket.file(filePath);
+                            functions.logger.log("Successfully deleted file:", file);
+                            file.delete().then(() => {
+                              functions.logger.log(`Successfully deleted photo with name: ${fileName}`);
+                            });
+                          });
+                        }
+
+                        const movies = media._videoNames;
+                        if (movies) {
+                          movies.forEach( (fileName) => {
+                            const filePath = `movies/${fileName}`;
+                            const file = bucket.file(filePath);
+
+                            file.delete().then(() => {
+                              functions.logger.log(`Successfully deleted movies with name: ${fileName}`);
+                            });
+                          });
+                        }
+                      }
+
+                      admin.database().ref("media").child(fishId).remove();
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      return "";
+    });
 // exports.simpleDbFunction = functions.database.ref("/auction_informations/{auctionId}")
 //     .onWrite((change, context) => {
 //       // Only edit data when it is first created.
