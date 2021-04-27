@@ -136,7 +136,7 @@ exports.removeAuthUserTest = functions.region("asia-northeast1").https.onCall((d
       });
 });
 
-exports.auctionRemoveMediaStorage = functions.region("asia-northeast1").pubsub.schedule("* * * * *")
+exports.auctionRemoveMediaStorage = functions.region("asia-northeast1").pubsub.schedule("0 0 * * *").timeZone("Asia/Tokyo")
     .onRun((context)=>{
       const bucket = admin.storage().bucket("absolute-dev01.appspot.com");
 
